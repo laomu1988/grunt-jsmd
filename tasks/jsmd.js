@@ -22,6 +22,7 @@ module.exports = function (grunt) {
         var lines = context.split("\n"),line;
         var exe = /^\s*(.*?)\s*$/g;
         var inNote = false;
+        //清理左右空格
         for(var i = 0;i<lines.length;i++){
           line = lines[i];
           if(line.charAt(line.length -1 ) === '\r'){
@@ -33,12 +34,18 @@ module.exports = function (grunt) {
           lines[i] = line;
         }
 
+
         for(i = 0;i<lines.length;i++){
           line = lines[i];
           if(line.substring(0,3) === "/**"){//find start
             while(i<lines.length && line.lastIndexOf("*/") !== line.length - 2){//find end
-              //没有找到*/结尾标记
-              line += '\n    * '+getParam(lines[++i]);
+              //没有找到*/结尾标记,则继续向下一行查找
+              var next = getParam(lines[++i]);
+              if(next === "*/"){
+                line += "*/";
+              }else{
+                line += next.length > 0 ?'\n    * '+next :'\n';
+              }
             }
             line = line.substring(0,line.length - 2);
             line = line.substring(3,line.length);
@@ -50,7 +57,7 @@ module.exports = function (grunt) {
             }else{
               var func = getFuncName(lines[i+1]);
               if(func){
-                line = '* '+func+':'+line;
+                line = '  * '+func+':'+line;
               }else{
                 line = '* '+line;
               }
@@ -68,12 +75,13 @@ module.exports = function (grunt) {
         callback();
       }
     };
-    /*取得函数名称*/
+    /*取得函数名称及参数*/
     function getFuncName(str){
       /** log = function(a,b)
       * a.b.fun = function(a,b)
       */
-      var result = /\s*([\w.]*)/.exec(str);
+
+      var result = /\s*([\w.]*)/.exec(str);//取得函数名
       if(!result){
         return '';
       }
@@ -81,14 +89,21 @@ module.exports = function (grunt) {
       if(func.indexOf(".") >=0){
         func = func.substring(func.lastIndexOf('.')+1);
       }
+      //取得参数部分
+      var param = str.match(/\([^\)]*\)/g);
+      if(param){
+        func += param[0];
+      }
       /*!function abc(){}*/
+
       return func;
     }
 
     /**取得参数说明*/
     function getParam(str){
       /*@param a:参数说明*/
-      str =str.substring(str.indexOf("@param")+6);
+      /*@abc*/
+      str =str.substring(str.indexOf("@")+1);
       return str;
     }
 
