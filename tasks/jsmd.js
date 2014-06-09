@@ -19,21 +19,28 @@ module.exports = function (grunt) {
         var context = fs.readFileSync(src,'utf-8');
         var outdata = "";
 
-        var lines = context.split("\n");
+        var lines = context.split("\n"),line;
         var exe = /^\s*(.*?)\s*$/g;
         var inNote = false;
         for(var i = 0;i<lines.length;i++){
-          var line = lines[i];
-          if(line.charAt(line.length -1 ) === '\r'){            line = line.substring(0,line.length -1);          }
-          var result = exe.exec(line);
-          if(!result){
-             result = exe.exec(line);
+          line = lines[i];
+          if(line.charAt(line.length -1 ) === '\r'){
+            line = line.substring(0,line.length -1);
           }
+          exe.lastIndex = 0;
+          var result = exe.exec(line);
           line = result[1];
-          if(line.substring(0,3) === "/**"){
-            if(line.lastIndexOf("*/") === line.length - 2){
-              line = line.substring(0,line.length - 2);
+          lines[i] = line;
+        }
+
+        for(i = 0;i<lines.length;i++){
+          line = lines[i];
+          if(line.substring(0,3) === "/**"){//find start
+            while(i<lines.length && line.lastIndexOf("*/") !== line.length - 2){//find end
+              //没有找到*/结尾标记
+              line += '\n    * '+getParam(lines[++i]);
             }
+            line = line.substring(0,line.length - 2);
             line = line.substring(3,line.length);
             if(line.length<1){
               continue;
@@ -76,6 +83,13 @@ module.exports = function (grunt) {
       }
       /*!function abc(){}*/
       return func;
+    }
+
+    /**取得参数说明*/
+    function getParam(str){
+      /*@param a:参数说明*/
+      str =str.substring(str.indexOf("@param")+6);
+      return str;
     }
 
     grunt.util.async.forEachSeries(this.files, jsmd, function (err) {
